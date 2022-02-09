@@ -161,8 +161,8 @@ struct linreg {
 			
 			weights = weights - (dw * lr);
 			bias = bias - (db * lr);
-			if(_%500==0) {
-				cout<<"mse: "<<_/500<<" : "<<mse(Y_pred, Y)<<endl;
+			if(_%(_iter/2)==0) {
+				cout<<"mse: "<<_/(_iter/2)<<" : "<<mse(Y_pred, Y)<<endl;
 			}
 			// weights.print();
 			// bias.print();
@@ -173,6 +173,7 @@ struct linreg {
 		while(epochs--) {
 			fit(initlr, epochsize);
 			initlr/=10;
+			// cout<<"mse "
 		}
 	}
 
@@ -186,21 +187,11 @@ int main() {
 	cin>>samples>>x_ft>>y_ft;
 	mat<bigflt> X=rnd_mat(samples, x_ft, 0, 10);
 	mat<bigflt> Y=rnd_mat(samples, y_ft, 0, 10);
-	// X.print();
-	// Y.print();
-	linreg test(X,Y);
-	test.train(0.01, 10, 1000);
-	// bigflt lr = 0.01;
-	// fin(i,0,10) {
-	// 	test.fit(lr, 1000);
-	// 	lr/=10;
-	// }
-	// test.fit(0.01, 1000);
-	// test.fit(0.01, 1000);
-	// test.fit(0.001, 10000);
-	// test.fit(0.0001, 1000);
 
-	mat<bigflt> res=test.predict(X);
+	linreg xyz(X,Y);
+	xyz.train(0.01, 10, 10000);
+
+	mat<bigflt> res=xyz.predict(X);
 	cout<<"actual values: "<<endl;
 	Y.print();
 	cout<<"pred values: "<<endl;
