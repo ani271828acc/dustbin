@@ -3,6 +3,7 @@
 #include<bits/stdc++.h>
 using namespace std;
 #define fin(i,j,k) for(int i=j;i<k;i++)
+#define bigflt long double
 
 struct prng{
 private:
@@ -16,7 +17,7 @@ public:
 	prng(unsigned long long _state) {
 		state=_state;
 	}
-	double flt() {
+	bigflt flt() {
 		next_rand();
 		unsigned long long cur = state;
 		return cur*1.0/ULLONG_MAX;
@@ -79,8 +80,8 @@ struct mat{
     }
 };
 
-mat<double> rnd_mat(int _rows, int _cols, double lo, double hi) {
-	mat<double> res(_rows, _cols);
+mat<bigflt> rnd_mat(int _rows, int _cols, bigflt lo, bigflt hi) {
+	mat<bigflt> res(_rows, _cols);
 	fin(i,0,_rows) {
 		fin(j,0,_cols) {
 			res[i][j]=lo+(hi-lo)*rng.flt();
@@ -89,8 +90,8 @@ mat<double> rnd_mat(int _rows, int _cols, double lo, double hi) {
 	return res;
 }
 
-mat<double> cnst_mat(int _rows, int _cols, double val) {
-	mat<double> res(_rows, _cols);
+mat<bigflt> cnst_mat(int _rows, int _cols, bigflt val) {
+	mat<bigflt> res(_rows, _cols);
 	fin(i,0,_rows) {
 		fin(j,0,_cols) {
 			res[i][j]=val;
@@ -99,8 +100,8 @@ mat<double> cnst_mat(int _rows, int _cols, double val) {
 	return res;
 }
 
-mat<double> transpose(mat<double> M) {
-	mat<double> res(M.cols, M.rows);
+mat<bigflt> transpose(mat<bigflt> M) {
+	mat<bigflt> res(M.cols, M.rows);
 	fin(i,0,M.rows) {
 		fin(j,0,M.cols) {
 			res[j][i]=M[i][j];
@@ -109,8 +110,8 @@ mat<double> transpose(mat<double> M) {
 	return res;
 }
 
-double mat_sum(mat<double> M) {
-	double res=0;
+bigflt mat_sum(mat<bigflt> M) {
+	bigflt res=0;
 	fin(i,0,M.rows) {
 		fin(j,0,M.cols) {
 			res+=M[i][j];
@@ -119,8 +120,8 @@ double mat_sum(mat<double> M) {
 	return res;
 }
 
-double mse(mat<double> Y_, mat<double> Y) {
-	double res = 0;
+bigflt mse(mat<bigflt> Y_, mat<bigflt> Y) {
+	bigflt res = 0;
 	fin(i,0,Y.rows) {
 		fin(j,0,Y.cols) {
 			res+=(Y_[i][j]-Y[i][j])*(Y_[i][j]-Y[i][j]);
@@ -130,41 +131,52 @@ double mse(mat<double> Y_, mat<double> Y) {
 }
 
 struct linreg {
-	double lr=0.01;
+	bigflt lr=0.01;
 	int iter=1000;
-	mat<double> weights;
-	mat<double> bias;
-
-	linreg(double _lr, int _iter) {
-		lr=_lr;
-		iter=_iter;
+	mat<bigflt> weights;
+	mat<bigflt> bias;
+	mat<bigflt> X;
+	mat<bigflt> Y;
+	int n_samples = 0;
+	int n_features = 0;
+	int y_features = 0;
+	linreg(mat<bigflt> _X, mat<bigflt> _Y) {
+		X = _X;
+		Y = _Y;
+		weights = rnd_mat(X.cols, Y.cols,0,1);
+		bias = cnst_mat(X.rows, Y.cols, rng.flt()*10);
+		n_samples = X.rows;
+		n_features = X.cols;
+		y_features = Y.cols;
 	}
-	linreg() {}
-
-	void fit(mat<double> X, mat<double> Y) {
-		int n_samples = X.rows;
-		int n_features = X.cols;
-		int y_features = Y.cols;
-		weights = rnd_mat(n_features,y_features,0,1);
-		bias = cnst_mat(n_samples, y_features, rng.flt()*10);
+	void fit(bigflt _lr, int _iter) {
+		lr = _lr;
+		iter = _iter;
 		fin(_,0,iter) {
-			mat<double> Y_pred = X*weights + bias;
-			mat<double> dw = transpose(X)*(Y_pred - Y);
+			mat<bigflt> Y_pred = X*weights + bias;
+			mat<bigflt> dw = transpose(X)*(Y_pred - Y);
 			dw = dw * (1.0/n_samples);
-			mat<double> db = cnst_mat(bias.rows, bias.cols, mat_sum((Y_pred-Y)));
+			mat<bigflt> db = cnst_mat(bias.rows, bias.cols, mat_sum((Y_pred-Y)));
 			db = db * (1.0/n_samples);
 			
 			weights = weights - (dw * lr);
 			bias = bias - (db * lr);
-			if(_%5000==0) {
-				cout<<"mse: "<<_/5000<<" : "<<mse(Y_pred, Y)<<endl;
+			if(_%500==0) {
+				cout<<"mse: "<<_/500<<" : "<<mse(Y_pred, Y)<<endl;
 			}
 			// weights.print();
 			// bias.print();
 		}
 	}
 
-	mat<double> predict(mat<double> X) {
+	void train(bigflt initlr, int epochs, int epochsize) {
+		while(epochs--) {
+			fit(initlr, epochsize);
+			initlr/=10;
+		}
+	}
+
+	mat<bigflt> predict(mat<bigflt> X) {
 		return (X*weights + bias);
 	}
 };
@@ -172,14 +184,27 @@ struct linreg {
 int main() {
 	int samples, x_ft, y_ft;
 	cin>>samples>>x_ft>>y_ft;
-	mat<double> X=rnd_mat(samples, x_ft, 0, 10);
-	mat<double> Y=rnd_mat(samples, y_ft, 0, 10);
+	mat<bigflt> X=rnd_mat(samples, x_ft, 0, 10);
+	mat<bigflt> Y=rnd_mat(samples, y_ft, 0, 10);
 	// X.print();
 	// Y.print();
-	linreg test(0.001, 100000);
-	test.fit(X, Y);
+	linreg test(X,Y);
+	test.train(0.01, 10, 1000);
+	// bigflt lr = 0.01;
+	// fin(i,0,10) {
+	// 	test.fit(lr, 1000);
+	// 	lr/=10;
+	// }
+	// test.fit(0.01, 1000);
+	// test.fit(0.01, 1000);
+	// test.fit(0.001, 10000);
+	// test.fit(0.0001, 1000);
 
-	mat<double> res=test.predict(X);
+	mat<bigflt> res=test.predict(X);
+	cout<<"actual values: "<<endl;
 	Y.print();
+	cout<<"pred values: "<<endl;
 	res.print();
+	cout<<"error : "<<endl;
+	cout<<mse(Y,res)<<endl;
 }
